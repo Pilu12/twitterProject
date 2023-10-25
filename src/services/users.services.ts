@@ -21,6 +21,9 @@ class UserServices {
       options: { expiresIn: process.env.REFRESH_TOKEN_EXPIRE_IN }
     })
   }
+  private signAccessAndRefreshToken(user_id: string) {
+    return Promise.all([this.signAccessToken(user_id), this.signREfreshToken(user_id)])
+  }
   async register(payLoad: RegisterReqBody) {
     // const { email, password } = payLoad
     const result = await databaseService.users.insertOne(
@@ -33,16 +36,19 @@ class UserServices {
     // lấy user_id từ accout vừa tạo
     const user_id = result.insertedId.toString()
     // tạo ra access từ user_id và refresh
-    const [access_token, refresh_token] = await Promise.all([
-      this.signAccessToken(user_id),
-      this.signREfreshToken(user_id)
-    ])
+    const [access_token, refresh_token] = await this.signAccessAndRefreshToken(user_id)
     return { access_token, refresh_token }
   }
   async checkEmailExist(email: string) {
     // vào database tìm user có email
     const user = await databaseService.users.findOne({ email })
     return Boolean(user)
+  }
+  async login(user_id: string) {
+    //dùng user_id tạo access_refresh
+    const [access_token, refresh_token] = await this.signAccessAndRefreshToken(user_id)
+    return { access_token, refresh_token }
+    //return access refresh cho controller
   }
 }
 
