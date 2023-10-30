@@ -2,16 +2,21 @@ import { Router } from 'express'
 import { register, wrap } from 'module'
 import {
   emailVerifyController,
+  forgotPasswordController,
   loginController,
   logoutController,
-  registerController
+  registerController,
+  resendEmailVerifyController,
+  verifyForgotPasswordController
 } from '~/controllers/users.controllers'
 import {
   accessTokenValidator,
   emailVerifyValidator,
+  forgotPasswordValidator,
   loginVAlidator,
   refreshTokenValidator,
-  registerValidator
+  registerValidator,
+  verifyForgotPasswordTokenValidator
 } from '~/middlewares/users.middlewares'
 import { wrapAsync } from '~/utils/handlers'
 
@@ -59,4 +64,35 @@ path: /userrs/verify-email
 body: {email_verify_token: string}
 */
 usersRouter.post('/verify-email', emailVerifyValidator, wrapAsync(emailVerifyController))
+/*
+resend email verify 
+method: POST  
+Header: Authorization: Bearer <access_token>
+
+*/
+usersRouter.post('/resend-email-verify', accessTokenValidator, wrapAsync(resendEmailVerifyController))
+
+/*
+forgot- password 
+khi người dùng quên mật khẩu, họ cung cấp email cho mình 
+mình xem user sở hữu email đó ko 
+nếu có thì tạo 1 forgot_password_token và gửi vào email của user đó 
+
+method: POST 
+path: /users/forgot-password
+body: (email: string)
+*/
+usersRouter.post('/forgot-password', forgotPasswordValidator, wrapAsync(forgotPasswordController))
+/*
+dess: verify forgot password token
+người dùng sau khi báo forgot pasword họ sẽ nhận đc 1 email
+họ vào và click vào link trong email đó, link đó có 1 req
+đón kèm forgot_password_token và gửi lên server
+mình sẽ verifu cái token này, nếu thành cồn thì mình sex cho ngta reset password
+body: {forgotpassword: strng} */
+usersRouter.post(
+  '/verify-forgot-password',
+  verifyForgotPasswordTokenValidator,
+  wrapAsync(verifyForgotPasswordController)
+)
 export default usersRouter
