@@ -19,3 +19,11 @@ export default HTTP_STATUS
 //omit của lodash có nv gì ?
 // file HttpStatus , message, error lưu gì ?
 // khi login thì ng dùng truyền gì, ta phải làm gì ?
+
+// luồn xử lí login  như thế nào
+// luồn xử lí register đi như thế nào
+// luồn xử lí logout đi như thế nào
+// file type.d.ts lưu gì
+// lúc verifyToken  bị lỗi trong checkSchema thì trả ra status mấy, muốn khác thì sao
+//lúc access_token thì truyền lên request ntn, có dạng ra sao
+//hàm verifyToken và signToken của mình có cần truyền secretKey không, vì sao ?

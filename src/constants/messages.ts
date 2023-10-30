@@ -8,6 +8,7 @@ export const USERS_MESSAGES = {
   EMAIL_ALREADY_EXISTS: 'Email already exists',
   EMAIL_IS_REQUIRED: 'Email is required',
   EMAIL_IS_INVALID: 'Email is invalid',
+  EMAIL_VERIFY_SUCCESS: 'Email verify success',
   //password
   PASSWORD_IS_REQUIRED: 'Password is required',
   PASSWORD_MUST_BE_A_STRING: 'Password must be a string',
@@ -25,11 +26,14 @@ export const USERS_MESSAGES = {
   DATE_OF_BIRTH_BE_ISO8601: 'Date of birth must be ISO8601',
   //user
   EMAIL_OR_PASSWORD_IS_INCORRECT: 'Email or password is incorrect',
+  EMAIL_VERIFY_TOKEN_IS_REQUIRED: 'Email verify token is required',
+  EMAIL_ALREADY_VERIFIED_BEFORE: 'Email already verified before',
   LOGIN_SUCCESS: 'login successfully',
   REGISTER_SUCCESS: 'Register successfullys',
   ACCESS_TOKEN_IS_REQUIRED: 'Access token is required',
   REFRESH_TOKEN_IS_REQUIRED: 'Refresh token is required',
   REFRESH_TOKEN_IS_INVALID: 'Refresh token is invalid',
   USED_REFRESH_TOKEN_OR_NOT_EXIST: ' Used refresh token or not exist',
+  USER_NOT_FOUND: 'User not found',
   LOGOUT_SUCCESS: 'Logout successfully'
 } as const
