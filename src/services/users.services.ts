@@ -5,6 +5,9 @@ import { hashPassword } from '~/utils/crypto'
 import { signToken } from '~/utils/jwt'
 import { TokenType } from '~/constants/enums'
 import { config } from 'dotenv'
+import { ObjectId } from 'mongodb'
+import RefreshToken from '~/models/schemas/RefreshToken.schema'
+import { USERS_MESSAGES } from '~/constants/messages'
 config()
 class UserServices {
   // F tạo accessToken
@@ -37,6 +40,13 @@ class UserServices {
     const user_id = result.insertedId.toString()
     // tạo ra access từ user_id và refresh
     const [access_token, refresh_token] = await this.signAccessAndRefreshToken(user_id)
+    // lưu refreshToken vào database
+    await databaseService.refreshTokens.insertOne(
+      new RefreshToken({
+        token: refresh_token,
+        user_id: new ObjectId(user_id)
+      })
+    )
     return { access_token, refresh_token }
   }
   async checkEmailExist(email: string) {
@@ -47,8 +57,22 @@ class UserServices {
   async login(user_id: string) {
     //dùng user_id tạo access_refresh
     const [access_token, refresh_token] = await this.signAccessAndRefreshToken(user_id)
+    // lưu refresh_token
+    await databaseService.refreshTokens.insertOne(
+      new RefreshToken({
+        token: refresh_token,
+        user_id: new ObjectId(user_id)
+      })
+    )
     return { access_token, refresh_token }
     //return access refresh cho controller
+  }
+  async logout(refresh_token: string) {
+    //dungf refresh_token tim va xoa
+    await databaseService.refreshTokens.deleteOne({ token: refresh_token })
+    return {
+      mesage: USERS_MESSAGES.LOGOUT_SUCCESS
+    }
   }
 }
 

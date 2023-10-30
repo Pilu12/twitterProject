@@ -1,6 +1,7 @@
 import { MongoClient, ServerApiVersion, Db, Collection } from 'mongodb'
 import { config } from 'dotenv'
 import User from '~/models/schemas/User.schema'
+import RefreshToken from '~/models/schemas/RefreshToken.schema'
 config() // check nếu bị lỗi về connect
 // xem cái config - xem cái tên bên .env, xem bỏ vô `` chưa
 const uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@project.51pw1ig.mongodb.net/?retryWrites=true&w=majority`
@@ -25,6 +26,9 @@ class DatabaseService {
   }
   get users(): Collection<User> {
     return this.db.collection(process.env.DB_COLLECTION_USERS as string)
+  }
+  get refreshTokens(): Collection<RefreshToken> {
+    return this.db.collection(process.env.DB_REFRESH_TOKENS_COLLECTION as string)
   }
 }
 
