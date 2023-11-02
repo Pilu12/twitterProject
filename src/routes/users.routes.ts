@@ -3,10 +3,12 @@ import { register, wrap } from 'module'
 import {
   emailVerifyController,
   forgotPasswordController,
+  getMeController,
   loginController,
   logoutController,
   registerController,
   resendEmailVerifyController,
+  resetPasswordController,
   verifyForgotPasswordController
 } from '~/controllers/users.controllers'
 import {
@@ -16,6 +18,7 @@ import {
   loginVAlidator,
   refreshTokenValidator,
   registerValidator,
+  resetPasswordValidator,
   verifyForgotPasswordTokenValidator
 } from '~/middlewares/users.middlewares'
 import { wrapAsync } from '~/utils/handlers'
@@ -30,23 +33,7 @@ body: {email, password}
 usersRouter.get('/login', loginVAlidator, wrapAsync(loginController))
 
 // usersRouter.post('/register', registerValidator, registerController)
-usersRouter.post(
-  '/register',
-  registerValidator,
-  wrapAsync(registerController)
-  //   (req, res, next) => {
-  //     console.log('Req handler1')
-  //     next(new Error('Error in handler 1'))
-  //   }, // async -> next bth, throw bi loi do || hoặc try cath bát nó
-  //   // con bth thi bth hehe
-  //   (req, res, next) => {
-  //     console.log('Req handler2')
-  //     next()
-  //   },
-  //   (req, res, next) => {
-  //     console.log('Req handler3')
-  //     res.json({ message: `Register Success` })
-)
+usersRouter.post('/register', registerValidator, wrapAsync(registerController))
 //dês: đang xuất
 // path: /users/logout
 //method: POST
@@ -95,4 +82,27 @@ usersRouter.post(
   verifyForgotPasswordTokenValidator,
   wrapAsync(verifyForgotPasswordController)
 )
+
+/*
+des: reset password
+path: '/reset-password'
+method: POST
+Header: không cần, vì  ngta quên mật khẩu rồi, thì sao mà đăng nhập để có authen đc
+body: {forgot_password_token: string, password: string, confirm_password: string}
+*/
+usersRouter.post(
+  '/reset-password',
+  resetPasswordValidator,
+  verifyForgotPasswordTokenValidator,
+  wrapAsync(resetPasswordController)
+)
+
+/*
+des: get profile của user
+path: '/me'
+method: get
+Header: {Authorization: Bearer <access_token>}
+body: {}
+*/
+usersRouter.get('/me', accessTokenValidator, wrapAsync(getMeController))
 export default usersRouter
