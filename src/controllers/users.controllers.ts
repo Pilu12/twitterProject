@@ -4,13 +4,17 @@ import databaseService from '~/services/database.services'
 import userServices from '~/services/users.services'
 import { ParamsDictionary } from 'express-serve-static-core'
 import {
+  ChangePasswordReqBody,
   EmailVerifyReqBody,
+  FollowReqBody,
   ForgotPasswordReqBody,
   GetProfileReqParams,
   LogoutReqBody,
+  RefreshTokenReqBody,
   RegisterReqBody,
   ResetPasswordReqBody,
   TokenPayload,
+  UnfollowReqParams,
   UpdateMeReqBody
 } from '~/models/requests/User.request'
 import { ObjectId } from 'mongodb'
@@ -18,6 +22,7 @@ import { USERS_MESSAGES } from '~/constants/messages'
 import HTTP_STATUS from '~/constants/httpStatus'
 import { UserVerifyStatus } from '~/constants/enums'
 import { pick } from 'lodash'
+import { verify } from 'crypto'
 export const loginController = async (req: Request, res: Response) => {
   //vào req lấy user và _id của user đó
   // dùng cái user_id đó tạo access và refresh_token
@@ -174,4 +179,61 @@ export const getProfileController = async (
     message: USERS_MESSAGES.GET_PROFILE_SUCCESS, //message.ts thêm  GET_PROFILE_SUCCESS: 'Get profile success',
     result
   })
+}
+
+export const followController = async (
+  req: Request<ParamsDictionary, any, FollowReqBody>,
+  res: Response,
+  next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayload //lấy user_id từ decoded_authorization của access_token
+  const { followed_user_id } = req.body //lấy followed_user_id từ req.body
+  const result = await userServices.follow(user_id, followed_user_id) //chưa có method này
+  return res.json(result)
+}
+
+export const unfollowController = async (req: Request<UnfollowReqParams>, res: Response, next: NextFunction) => {
+  // lấy ra user_id người muốn thực hiện hành động unfollow
+  const { user_id } = req.decoded_authorization as TokenPayload
+  // lấy ra user_id người bị unfollow
+  const { user_id: followed_user_id } = req.params
+
+  const result = await userServices.unfollow(user_id, followed_user_id)
+  return res.json(result)
+}
+
+export const changePasswordController = async (
+  req: Request<ParamsDictionary, any, ChangePasswordReqBody>,
+  res: Response,
+  next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayload //lấy user_id từ decoded_authorization của access_token
+  const { password } = req.body //lấy old_password và password từ req.body
+  const result = await userServices.changePassword(user_id, password) //chưa code changePassword
+  return res.json(result)
+}
+
+export const refreshTokenController = async (
+  req: Request<ParamsDictionary, any, RefreshTokenReqBody>,
+  res: Response,
+  next: NextFunction
+) => {
+  // khi qua middleware refreshTokenValidator thì ta đã có decoded_refresh_token
+  //chứa user_id và token_type
+  //ta sẽ lấy user_id để tạo ra access_token và refresh_token mới
+  const { user_id, verify } = req.decoded_refresh_token as TokenPayload //lấy refresh_token từ req.body
+  const { refresh_token } = req.body
+  const result = await userServices.refreshToken({ user_id, verify, refresh_token }) //refreshToken chưa code
+  return res.json({
+    message: USERS_MESSAGES.REFRESH_TOKEN_SUCCESS, //message.ts thêm  REFRESH_TOKEN_SUCCESS: 'Refresh token success',
+    result
+  })
+}
+
+export const oAuthController = async (req: Request, res: Response, next: NextFunction) => {
+  const { code } = req.query
+  const { access_token, refresh_token, new_user } = await userServices.oAuth(code as string)
+  const urlRedirect = `${process.env.CLIENT_REDIRECT_CALLBACK}?access_token=${access_token}&refresh_token=${refresh_token}&new_user=${new_user}&verify=${verify}`
+
+  return res.redirect(urlRedirect)
 }
