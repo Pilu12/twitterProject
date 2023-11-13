@@ -89,7 +89,7 @@ dess: verify forgot password token
 người dùng sau khi báo forgot pasword họ sẽ nhận đc 1 email
 họ vào và click vào link trong email đó, link đó có 1 req
 đón kèm forgot_password_token và gửi lên server
-mình sẽ verifu cái token này, nếu thành cồn thì mình sex cho ngta reset password
+mình sẽ verifu cái token này, nếu thành cồn thì mình se cho ngta reset password
 body: {forgotpassword: strng} */
 usersRouter.post(
   '/verify-forgot-password',

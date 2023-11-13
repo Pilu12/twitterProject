@@ -8,12 +8,15 @@ import { config } from 'dotenv'
 import staticRouter from './routes/static.routes'
 import { UPLOAD_IMAGE_DIR, UPLOAD_VIDEO_DIR } from './constants/dir'
 import { MongoClient } from 'mongodb'
+import tweetRouter from './routes/tweets.routes'
 config()
 const app = express()
 const PORT = process.env.POST || 4000
 initFolder()
 databaseService.connect().then(() => {
   databaseService.indexUsers()
+  databaseService.indexRefreshTokens()
+  databaseService.indexFollowers()
 })
 
 app.use(express.json())
@@ -23,7 +26,11 @@ app.get('/', (req, res) => {
 
 app.use('/users', usersRouter)
 //localhost:3000/api/tweets
+
 app.use('/medias', mediasRouter)
+
+//tweet
+app.use('/tweets', tweetRouter)
 
 // app.use('/static', express.static(UPLOAD_DIR))
 app.use('/static', staticRouter)
