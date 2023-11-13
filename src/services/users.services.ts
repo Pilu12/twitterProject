@@ -2,7 +2,7 @@ import User from '~/models/schemas/User.schema'
 import databaseService from './database.services'
 import { RegisterReqBody, UpdateMeReqBody } from '~/models/requests/User.request'
 import { hashPassword } from '~/utils/crypto'
-import { signToken } from '~/utils/jwt'
+import { signToken, verifyToken } from '~/utils/jwt'
 import { TokenType, UserVerifyStatus } from '~/constants/enums'
 import { config } from 'dotenv'
 import { ObjectId } from 'mongodb'
@@ -12,8 +12,16 @@ import { ErrorWithStatus } from '~/models/Errors'
 import HTTP_STATUS from '~/constants/httpStatus'
 import { Follower } from '~/models/schemas/Followers.schema'
 import axios from 'axios'
+import { verify } from 'crypto'
 config()
 class UserServices {
+  private decodeRefreshToken(refresh_token: string) {
+    return verifyToken({
+      token: refresh_token,
+      secretOrPublicKey: process.env.JWT_SECRET_REFRESH_TOKEN as string
+    })
+  }
+
   // F tạo accessToken
   private signAccessToken({ user_id, verify }: { user_id: string; verify: UserVerifyStatus }) {
     return signToken({
@@ -23,12 +31,20 @@ class UserServices {
     })
   }
   // F tạo refreshToken
-  private signREfreshToken({ user_id, verify }: { user_id: string; verify: UserVerifyStatus }) {
-    return signToken({
-      payload: { user_id, token_type: TokenType.RefreshToKen, verify },
-      options: { expiresIn: process.env.REFRESH_TOKEN_EXPIRE_IN },
-      privateKey: process.env.JWT_SECRET_REFRESH_TOKEN as string
-    })
+  private signREfreshToken({ user_id, verify, exp }: { user_id: string; verify: UserVerifyStatus; exp?: number }) {
+    if (exp) {
+      return signToken({
+        payload: { user_id, token_type: TokenType.RefreshToKen, verify, exp },
+
+        privateKey: process.env.JWT_SECRET_REFRESH_TOKEN as string
+      })
+    } else {
+      return signToken({
+        payload: { user_id, token_type: TokenType.RefreshToKen, verify },
+        options: { expiresIn: process.env.REFRESH_TOKEN_EXPIRE_IN },
+        privateKey: process.env.JWT_SECRET_REFRESH_TOKEN as string
+      })
+    }
   }
   private signEmailVeryfyToken({ user_id, verify }: { user_id: string; verify: UserVerifyStatus }) {
     return signToken({
@@ -72,11 +88,15 @@ class UserServices {
       user_id: user_id.toString(),
       verify: UserVerifyStatus.Unverified
     })
+
+    const { exp, iat } = await this.decodeRefreshToken(refresh_token)
     // lưu refreshToken vào database
     await databaseService.refreshTokens.insertOne(
       new RefreshToken({
         token: refresh_token,
-        user_id: new ObjectId(user_id)
+        user_id: new ObjectId(user_id),
+        exp,
+        iat
       })
     )
     console.log(email_verify_token)
@@ -91,11 +111,15 @@ class UserServices {
   async login({ user_id, verify }: { user_id: string; verify: UserVerifyStatus }) {
     //dùng user_id tạo access_refresh
     const [access_token, refresh_token] = await this.signAccessAndRefreshToken({ user_id, verify })
+
+    const { exp, iat } = await this.decodeRefreshToken(refresh_token)
     // lưu refresh_token
     await databaseService.refreshTokens.insertOne(
       new RefreshToken({
         token: refresh_token,
-        user_id: new ObjectId(user_id)
+        user_id: new ObjectId(user_id),
+        exp,
+        iat
       })
     )
     return { access_token, refresh_token }
@@ -124,10 +148,13 @@ class UserServices {
       ])
     ])
     const [access_token, refresh_token] = token
+    const { exp, iat } = await this.decodeRefreshToken(refresh_token)
     await databaseService.refreshTokens.insertOne(
       new RefreshToken({
         token: refresh_token,
-        user_id: new ObjectId(user_id)
+        user_id: new ObjectId(user_id),
+        exp,
+        iat
       })
     )
     return { access_token, refresh_token }
@@ -314,20 +341,34 @@ class UserServices {
   async refreshToken({
     user_id,
     verify,
-    refresh_token
+    refresh_token,
+    exp
   }: {
     user_id: string
     verify: UserVerifyStatus
     refresh_token: string
+    exp: number
   }) {
     //tạo mới
-    const [access_token, new_refresh_token] = await this.signAccessAndRefreshToken({ user_id, verify })
+    const [access_token, new_refresh_token] = await Promise.all([
+      this.signAccessToken({
+        user_id: user_id,
+        verify
+      }),
+      this.signREfreshToken({
+        user_id: user_id,
+        verify,
+        exp
+      })
+    ])
+
     //vì một người đăng nhập ở nhiều nơi khác nhau, nên họ sẽ có rất nhiều document trong collection refreshTokens
     //ta không thể dùng user_id để tìm document cần update, mà phải dùng token, đọc trong RefreshToken.schema.ts
     await databaseService.refreshTokens.deleteOne({ token: refresh_token }) //xóa refresh
+    const { iat } = await this.decodeRefreshToken(new_refresh_token)
     //insert lại document mới
     await databaseService.refreshTokens.insertOne(
-      new RefreshToken({ user_id: new ObjectId(user_id), token: new_refresh_token })
+      new RefreshToken({ user_id: new ObjectId(user_id), token: new_refresh_token, exp, iat })
     )
     return { access_token, refresh_token: new_refresh_token }
   }
@@ -395,9 +436,10 @@ class UserServices {
         user_id: user._id.toString(),
         verify: user.verify
       })
+      const { exp, iat } = await this.decodeRefreshToken(refresh_token)
       // luuw refresh
       await databaseService.refreshTokens.insertOne(
-        new RefreshToken({ user_id: new ObjectId(user._id), token: refresh_token })
+        new RefreshToken({ user_id: new ObjectId(user._id), token: refresh_token, exp, iat })
       )
       return {
         access_token,

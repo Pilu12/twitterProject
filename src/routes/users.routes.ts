@@ -48,12 +48,12 @@ usersRouter.post('/login', loginVAlidator, wrapAsync(loginController))
 
 // usersRouter.post('/register', registerValidator, registerController)
 usersRouter.post('/register', registerValidator, wrapAsync(registerController))
+
 //dês: đang xuất
 // path: /users/logout
 //method: POST
 // Header: {Authorization: Bearer <access_token>}
 // body: {refresh_token: string}
-
 usersRouter.post('/logout', accessTokenValidator, refreshTokenValidator, wrapAsync(logoutController))
 //verify email
 /*
